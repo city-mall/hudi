@@ -27,11 +27,15 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.log4j.LogManager;
+import org.apache.log4j.Logger;
 
 /**
  * Source for incrementally ingesting debezium generated change logs for PostgresDB.
  */
 public class PostgresDebeziumSource extends DebeziumSource {
+
+  private static final Logger LOG = LogManager.getLogger(PostgresDebeziumSource.class);
 
   public PostgresDebeziumSource(TypedProperties props, JavaSparkContext sparkContext,
                                 SparkSession sparkSession,
@@ -65,20 +69,20 @@ public class PostgresDebeziumSource extends DebeziumSource {
           )
           .filter(rowDataset.col(DebeziumConstants.INCOMING_OP_FIELD).notEqual(DebeziumConstants.DELETE_OP));
 
-      Dataset<Row> deletedData = rowDataset
-          .selectExpr(
-              String.format("%s as %s", DebeziumConstants.INCOMING_OP_FIELD, DebeziumConstants.FLATTENED_OP_COL_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_TS_MS_FIELD, DebeziumConstants.UPSTREAM_PROCESSING_TS_COL_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_NAME_FIELD, DebeziumConstants.FLATTENED_SHARD_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_TS_MS_FIELD, DebeziumConstants.FLATTENED_TS_COL_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_TXID_FIELD, DebeziumConstants.FLATTENED_TX_ID_COL_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_LSN_FIELD, DebeziumConstants.FLATTENED_LSN_COL_NAME),
-              String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_XMIN_FIELD, DebeziumConstants.FLATTENED_XMIN_COL_NAME),
-              String.format("%s.*", DebeziumConstants.INCOMING_BEFORE_FIELD)
-          )
-          .filter(rowDataset.col(DebeziumConstants.INCOMING_OP_FIELD).equalTo(DebeziumConstants.DELETE_OP));
-
-      return insertedOrUpdatedData.union(deletedData);
+      // Dataset<Row> deletedData = rowDataset
+      //     .selectExpr(
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_OP_FIELD, DebeziumConstants.FLATTENED_OP_COL_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_TS_MS_FIELD, DebeziumConstants.UPSTREAM_PROCESSING_TS_COL_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_NAME_FIELD, DebeziumConstants.FLATTENED_SHARD_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_TS_MS_FIELD, DebeziumConstants.FLATTENED_TS_COL_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_TXID_FIELD, DebeziumConstants.FLATTENED_TX_ID_COL_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_LSN_FIELD, DebeziumConstants.FLATTENED_LSN_COL_NAME),
+      //         String.format("%s as %s", DebeziumConstants.INCOMING_SOURCE_XMIN_FIELD, DebeziumConstants.FLATTENED_XMIN_COL_NAME),
+      //         String.format("%s.*", DebeziumConstants.INCOMING_BEFORE_FIELD)
+      //     )
+      //     .filter(rowDataset.col(DebeziumConstants.INCOMING_OP_FIELD).equalTo(DebeziumConstants.DELETE_OP));
+      LOG.info("Skipping Deletes");
+      return insertedOrUpdatedData;//.union(deletedData);
     } else {
       return rowDataset;
     }
