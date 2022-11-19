@@ -138,11 +138,23 @@ public class AWSGlueCatalogSyncClient extends HoodieSyncClient {
 
         BatchCreatePartitionResult result = awsGlue.batchCreatePartition(request);
         if (CollectionUtils.nonEmpty(result.getErrors())) {
-          throw new HoodieGlueSyncException("Fail to add partitions to " + tableId(databaseName, tableName)
-              + " with error(s): " + result.getErrors());
+          Boolean hasExistsExceptionError = result.getErrors().stream().map(partitionError -> {
+            return partitionError.getErrorDetail();
+          }).map(errorDetail -> {
+            return errorDetail.getErrorCode();
+          }).allMatch(val -> val.equals("AlreadyExistsException"));
+
+          LOG.warn("Value of hasExistsExceptionError" + hasExistsExceptionError);
+
+          if (!hasExistsExceptionError) {
+            throw new HoodieGlueSyncException("Fail to add partitions to " + tableId(databaseName, tableName)
+                + " with error(s): " + result.getErrors() + " errorCode ");
+          }
         }
         Thread.sleep(BATCH_REQUEST_SLEEP_MILLIS);
       }
+    } catch (AlreadyExistsException e) {
+      LOG.warn("Partition in Table " + tableId(databaseName, tableName) + " already exists.", e);
     } catch (Exception e) {
       throw new HoodieGlueSyncException("Fail to add partitions to " + tableId(databaseName, tableName), e);
     }
@@ -173,11 +185,23 @@ public class AWSGlueCatalogSyncClient extends HoodieSyncClient {
 
         BatchUpdatePartitionResult result = awsGlue.batchUpdatePartition(request);
         if (CollectionUtils.nonEmpty(result.getErrors())) {
-          throw new HoodieGlueSyncException("Fail to update partitions to " + tableId(databaseName, tableName)
-              + " with error(s): " + result.getErrors());
+          Boolean hasExistsExceptionError = result.getErrors().stream().map(partitionError -> {
+            return partitionError.getErrorDetail();
+          }).map(errorDetail -> {
+            return errorDetail.getErrorCode();
+          }).allMatch(val -> val.equals("AlreadyExistsException"));
+
+          LOG.warn("Value of hasExistsExceptionError" + hasExistsExceptionError);
+
+          if (!hasExistsExceptionError) {
+            throw new HoodieGlueSyncException("Fail to update partitions to " + tableId(databaseName, tableName)
+                + " with error(s): " + result.getErrors() + " errorCode ");
+          }
         }
         Thread.sleep(BATCH_REQUEST_SLEEP_MILLIS);
       }
+    } catch (AlreadyExistsException e) {
+      LOG.warn("Partition in Table " + tableId(databaseName, tableName) + " already exists while updating.", e);
     } catch (Exception e) {
       throw new HoodieGlueSyncException("Fail to update partitions to " + tableId(databaseName, tableName), e);
     }

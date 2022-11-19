@@ -151,13 +151,17 @@ public abstract class DebeziumSource extends RowSource {
     if (deserializerClassName.equals(StringDeserializer.class.getName())) {
       kafkaData = AvroConversionUtils.createDataFrame(
           KafkaUtils.<String, String>createRDD(sparkContext, offsetGen.getKafkaParams(), offsetRanges, LocationStrategies.PreferConsistent())
+              .filter(obj -> obj.serializedValueSize() > -1)
               .map(obj -> convertor.fromJson(obj.value()))
               .rdd(), schemaStr, sparkSession);
+      LOG.info("Naisheel Code 1");
     } else {
       kafkaData = AvroConversionUtils.createDataFrame(
           KafkaUtils.createRDD(sparkContext, offsetGen.getKafkaParams(), offsetRanges, LocationStrategies.PreferConsistent())
+              .filter(obj -> obj.serializedValueSize() > -1)
               .map(obj -> (GenericRecord) obj.value())
               .rdd(), schemaStr, sparkSession);
+      LOG.info("Naisheel Code 2");
     }
 
     // Flatten debezium payload, specific to each DB type (postgres/ mysql/ etc..)
